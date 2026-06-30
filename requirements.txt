@@ -1,0 +1,4 @@
+Django==5.1.2
+pywebpush==2.3.0
+django-webpush==0.3.6
+requests==2.34.2

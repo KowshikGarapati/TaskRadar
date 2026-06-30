@@ -23,32 +23,45 @@ from pywebpush import webpush, WebPushException
 
 def task_list(request):
     """Show all tasks for logged-in user"""
-    tasks = Task.objects.filter(user_id = request.session.get("id")).values(
-    "id", "title", "lat", "lon", "description", "date", "time")
+    tasks = Task.objects.filter(user_id=request.session.get("id")).values(
+        "id", "title", "lat", "lon", "description", "date", "time",
+        "is_completed", "location_notified", "time_notified", "is_expired"
+    )
     return render(request, 'tasks.html', {
-        "tasks_json": json.dumps(list(tasks), default = str), 
-        "tasks":tasks
+        "tasks_json": json.dumps(list(tasks), default=str), 
+        "tasks": tasks,
     })
 
 
 def newtask(request):
     """Create new task"""
+    user = User.objects.get(id=request.session.get("id"))
+    default_lat = user.default_latitude or 17.3850
+    default_lon = user.default_longitude or 78.4867
+
     if request.method == 'POST':
         form = TaskForm(request.POST)
         if form.is_valid():
             task = form.save(commit=False)
-            task.user = User.objects.get(id=request.session.get("id"))
+            task.user = user
             task.save()
             return redirect("task_list")
     else:
-        form = TaskForm()
+        form = TaskForm(initial={"lat": default_lat, "lon": default_lon})
 
-    return render(request, 'newtask.html', {'form': form})
+    return render(request, 'newtask.html', {
+        'form': form,
+        'default_latitude': default_lat,
+        'default_longitude': default_lon,
+    })
 
 
 def edit_task(request, task_id):
     """Edit existing task"""
     task = get_object_or_404(Task, id=task_id)
+    user = User.objects.get(id=request.session.get("id"))
+    default_lat = user.default_latitude or 17.3850
+    default_lon = user.default_longitude or 78.4867
 
     if request.method == 'POST':
         form = TaskForm(request.POST, instance=task)
@@ -56,9 +69,13 @@ def edit_task(request, task_id):
             form.save()
             return redirect('task_list')
     else:
-        form = TaskForm(instance=task)
+        form = TaskForm(instance=task, initial={"lat": task.lat or default_lat, "lon": task.lon or default_lon})
 
-    return render(request, 'edit_task.html', {'form': form})
+    return render(request, 'edit_task.html', {
+        'form': form,
+        'default_latitude': default_lat,
+        'default_longitude': default_lon,
+    })
 
 
 def delete_task(request, task_id):
@@ -229,8 +246,12 @@ def send_location_triggered_notification(request, task_id):
     if not user_id:
         return JsonResponse({"error": "Not logged in"}, status=403)
 
+    task = get_object_or_404(Task, id=task_id)
+
+    if task.user_id != user_id:
+        return JsonResponse({"error": "Forbidden"}, status=403)
+
     subscriptions = PushSubscription.objects.filter(user_id=user_id)
-    task = Task.objects.get(id=task_id)
 
     if not subscriptions.exists():
         return JsonResponse({"error": "No subscriptions"}, status=404)
@@ -260,11 +281,22 @@ def send_location_triggered_notification(request, task_id):
         except WebPushException as e:
             print(f"Push failed: {e}")
 
+    task.location_notified = True
+    task.save(update_fields=["location_notified"])
+
     return JsonResponse({"status": "Notification sent"})
 
-def send_time_triggered_notification(request, task_id):
 
-    task = Task.objects.get(id=task_id)
+def send_time_triggered_notification(request, task_id):
+    user_id = request.session.get("id")
+
+    if not user_id:
+        return JsonResponse({"error": "Not logged in"}, status=403)
+
+    task = get_object_or_404(Task, id=task_id)
+
+    if task.user_id != user_id:
+        return JsonResponse({"error": "Forbidden"}, status=403)
 
     payload = {
         "title": "⏰ Upcoming Task",
@@ -294,7 +326,7 @@ def send_time_triggered_notification(request, task_id):
         )
 
     task.time_notified = True
-    task.save()
+    task.save(update_fields=["time_notified"])
 
     return JsonResponse({"status": "time notification sent"})
 

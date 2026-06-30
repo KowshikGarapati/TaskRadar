@@ -159,14 +159,17 @@
   <div id="map"></div>
 
   <div class="task-nav-btn">
-    <button onclick='window.location.href = "http://127.0.0.1:8000/"'>All Tasks</button>
+    <button onclick='window.location.href = "{% url 'task_list' %}"'>All Tasks</button>
   </div>
 </div>
 
 <!-- Scripts -->
 <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
 <script>
-  const map = L.map('map').setView([17.3850, 78.4867], 12);
+  const defaultLatitude = {{ default_latitude|default:17.3850 }};
+  const defaultLongitude = {{ default_longitude|default:78.4867 }};
+
+  const map = L.map('map').setView([defaultLatitude, defaultLongitude], 12);
 
   L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
     attribution: 'Map data &copy; OpenStreetMap contributors'
@@ -176,7 +179,6 @@
     const lat = e.latlng.lat;
     const lng = e.latlng.lng;
 
-    // These must match the input field IDs rendered by {{ form.lat }} and {{ form.lon }}
     document.getElementById('lat').value = lat;
     document.getElementById('lon').value = lng;
   });

@@ -181,9 +181,9 @@ function send_location_triggered_notification(task){
         credentials: "include"
       }).then(response => {
         if (response.ok) {
-          alert("Notification sent!");
+          console.log("Location notification sent for", task.title);
         } else {
-          alert("Failed to send notification.");
+          console.log("Location notification failed for", task.title);
         }
       });
 }
@@ -198,9 +198,9 @@ function send_time_triggered_notification(task){
         credentials: "include",
       }).then(response => {
         if (response.ok) {
-          alert("Notification sent!");
+          console.log("Time notification sent for", task.title);
         } else {
-          alert("Failed to send notification.");
+          console.log("Time notification failed for", task.title);
         }
       });
 }
@@ -256,10 +256,15 @@ if ("geolocation" in navigator) {
                   task.lon
               );
 
-              if(distance < 200 && !task.location_notified){
+              const isMoving = typeof speed === "number" && speed > 0.3;
+              const hasGoodAccuracy = typeof accuracy === "number" && accuracy <= 60;
 
+              if (distance > 300 && task.location_notified) {
+                  task.location_notified = false;
+              }
+
+              if(distance < 200 && isMoving && hasGoodAccuracy && !task.location_notified){
                   send_location_triggered_notification(task);
-
                   task.location_notified = true;
               }
 
@@ -325,13 +330,13 @@ if ("geolocation" in navigator) {
         <div class="task-details">{{ task.description }} | {{ task.date }} | {{ task.time }}</div>
       </div>
       <div class="task-actions">
-        <button onclick="window.location.href = 'http://127.0.0.1:8000/tasks/edit/{{ task.id }}/'">Edit</button>
-        <button onclick="window.location.href = 'http://127.0.0.1:8000/tasks/delete/{{ task.id }}/'">Delete</button>
+        <button onclick="window.location.href = '{% url "edit_task" task.id %}'">Edit</button>
+        <button onclick="window.location.href = '{% url "delete_task" task.id %}'">Delete</button>
       </div>
     </div>
   {% endfor %}
 
-  <button class="new-task-button" onclick="window.location.href = 'http://127.0.0.1:8000/tasks/new/'">New Task</button>
+  <button class="new-task-button" onclick="window.location.href = '{% url "new_task" %}'">New Task</button>
 
   <!-- Footer -->
   <footer class="w3-content w3-padding-64 w3-text-grey w3-xlarge">

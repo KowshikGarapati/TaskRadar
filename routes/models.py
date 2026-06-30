@@ -4,6 +4,8 @@ class User(models.Model):
     name = models.CharField(max_length=150)
     password = models.CharField(max_length=150)
     email = models.EmailField()
+    default_latitude = models.FloatField(default=17.3850, blank=True, null=True)
+    default_longitude = models.FloatField(default=78.4867, blank=True, null=True)
 
     def __str__(self):
         return self.name

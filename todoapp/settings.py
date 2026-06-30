@@ -23,12 +23,12 @@ APPEND_SLASH = False
 # See https://docs.djangoproject.com/en/5.1/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-6a^&1^rcf9t(jnz^m8mmoce%5zw8ug0qouud(w_$+s+1djkr4('
+SECRET_KEY = os.environ.get('DJANGO_SECRET_KEY', 'django-insecure-6a^&1^rcf9t(jnz^m8mmoce%5zw8ug0qouud(w_$+s+1djkr4(')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
-ALLOWED_HOSTS = [".replit.dev", ".replit.    app", "localhost", "127.0.0.1"]
-CSRF_TRUSTED_ORIGINS = ["https://*.replit.dev", "https://*.replit.app", "http://localhost:3000", "http://127.0.0.1:3000"]
+DEBUG = os.environ.get('DEBUG', 'True') == 'True'
+ALLOWED_HOSTS = [host.strip() for host in os.environ.get('ALLOWED_HOSTS', 'localhost,127.0.0.1').split(',') if host.strip()]
+CSRF_TRUSTED_ORIGINS = [origin.strip() for origin in os.environ.get('CSRF_TRUSTED_ORIGINS', 'http://localhost:8000,http://127.0.0.1:8000').split(',') if origin.strip()]
 
 
 # Application definition
